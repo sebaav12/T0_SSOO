@@ -10,7 +10,6 @@
 //   free_user_input(input);
 // }
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,41 +17,40 @@
 #include <sys/wait.h>
 #include "../input_manager/manager.h"
 
+#define TRUE 1
+
 int main(int argc, char const *argv[]) {
+    int status;
 
-    // Bucle para mantener la shell
-    while (1) { 
+    while (TRUE) { 
+      // Mostrar el prompt
+        printf("shell> ");  
+        char** input = read_user_input(); 
 
-      // recibir input
-        char** input = read_user_input();  
-        
         if (input[0] == NULL) {  
+            free_user_input(input);
             continue;
         }
 
-        // manejar comando hello
+        pid_t pid = fork();  
 
-        if (strcmp(input[0], "hello") == 0) { 
-            pid_t pid = fork();  
-            
-            if (pid < 0) {  
-                perror("Error");
-                exit(1);
-            } else if (pid == 0) { 
+        if (pid < 0) {  
+            perror("Error al crear el proceso");
+            free_user_input(input);
+            exit(1);
+        } else if (pid == 0) {  
+            if (strcmp(input[0], "hello") == 0) {
                 printf("Hello World!\n");
-                exit(0);  
-            } else { 
-
-        // Esperar a que el proceso hijo termine
-                waitpid(pid, NULL, 0);  
+            } else {
+                printf("Comando no reconocido: %s\n", input[0]);
             }
-        } else {
-            printf("Comando no reconocido: %s\n", input[0]);
+            free_user_input(input);
+            exit(0);  // Terminar el proceso hijo
+        } else {  // Código del proceso padre
+            waitpid(pid, &status, 0);  // Esperar a que el proceso hijo termine
         }
 
-        // Liberar memoria
-
-        free_user_input(input);  
+        free_user_input(input);  // Liberar la memoria de la entrada del usuario
     }
 
     return 0;
